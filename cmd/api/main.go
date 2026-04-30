@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/TheodoreQQ/polls-go/internal/handlers"
+	"github.com/TheodoreQQ/polls-go/internal/middleware"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
@@ -20,17 +21,19 @@ func main() {
 
 	// Inicjalizacja handlera
 	pollHandler := &handlers.PollHandler{DB: db}
-	getHandler := &handlers.GetHandler{DB: db}
 	authHandler := &handlers.AuthHandler{DB: db}
 
 	// Konfiguracja routera Gin
 	r := gin.Default()
 
 	// Definicja endpointu
-	r.POST("/polls", pollHandler.CreatePoll)
-	r.GET("/options", getHandler.GetPoll)
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+
+	protected := r.Group("/")
+	protected.Use(middleware.AuthMiddleware())
+	protected.POST("/polls", pollHandler.CreatePoll)
+	protected.GET("/polls", pollHandler.GetPoll)
 
 	// Start serwera
 	r.Run(":8080")
