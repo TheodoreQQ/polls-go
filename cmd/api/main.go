@@ -29,11 +29,13 @@ func main() {
 	// Definicja endpointu
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.GET("/join/:code", pollHandler.GetPollByCode)
 
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware())
 	protected.POST("/polls", pollHandler.CreatePoll)
 	protected.GET("/polls", pollHandler.GetPoll)
+	protected.PATCH("/polls/:id/activate", pollHandler.ActivatePoll)
 
 	// Start serwera
 	r.Run(":8080")
