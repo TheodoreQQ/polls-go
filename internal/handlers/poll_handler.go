@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/TheodoreQQ/polls-go/internal/models"
+	"github.com/TheodoreQQ/polls-go/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -138,4 +139,100 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 		result = append(result, *pollsMap[pollID])
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *PollHandler) ActivatePoll(c *gin.Context) {
+	pollID := c.Param("id")
+	roomCode := utils.GenerateCode()
+
+	val, _ := c.Get("user_id")
+	var userID int
+
+	if id, ok := val.(int); ok {
+		userID = id
+	} else {
+		userID = int(val.(float64))
+	}
+
+	tx, err := h.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction failed"})
+		return
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`UPDATE polls SET is_active = false, code = NULL WHERE owner_id = $1`, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reset polls"})
+		return
+	}
+
+	result, err := tx.Exec(`UPDATE polls SET is_active = true, code = $1 WHERE id = $2 AND owner_id = $3`, roomCode, pollID, userID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "poll not found or no permission"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "poll activated succesfully",
+		"code":    roomCode})
+}
+
+func (h *PollHandler) GetPollByCode(c *gin.Context) {
+	code := c.Param("code")
+
+	query := `SELECT p.id, p.question, o.id, o.text 
+						FROM polls p 
+						JOIN options o ON p.id = o.poll_id 
+						WHERE p.code = $1 AND p.is_active = true`
+
+	rows, err := h.DB.Query(query, code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+	defer rows.Close()
+
+	var poll models.Poll
+	first := true
+
+	for rows.Next() {
+		var pID, oID int
+		var pQuestion, oText string
+
+		if err := rows.Scan(&pID, &pQuestion, &oID, &oText); err != nil {
+			continue
+		}
+
+		if first {
+			poll.ID = pID
+			poll.Question = pQuestion
+			poll.Options = []models.Option{}
+			first = false
+		}
+
+		poll.Options = append(poll.Options, models.Option{
+			ID:     oID,
+			PollID: pID,
+			Text:   oText,
+		})
+	}
+	if first {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No active poll for that code"})
+	}
+	c.JSON(http.StatusOK, poll)
+
 }
