@@ -30,12 +30,14 @@ func main() {
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.GET("/join/:code", pollHandler.GetPollByCode)
+	r.POST("/vote", pollHandler.Vote)
 
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware())
 	protected.POST("/polls", pollHandler.CreatePoll)
 	protected.GET("/polls", pollHandler.GetPoll)
 	protected.PATCH("/polls/:id/activate", pollHandler.ActivatePoll)
+	protected.GET("/polls/:id/results", pollHandler.GetVotesByPoll)
 
 	// Start serwera
 	r.Run(":8080")
