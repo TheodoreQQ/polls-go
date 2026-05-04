@@ -28,3 +28,14 @@ type Vote struct {
 	OptionID int `json:"option_id"`
 	VoterID  int `json:"voter_id"`
 }
+
+type PollForUser struct {
+	ID       int          `json:"id"`
+	Question string       `json:"question"`
+	Options  []OptionUser `json:"options"`
+}
+
+type OptionUser struct {
+	ID   int    `json:"id"`
+	Text string `json:"text"`
+}
