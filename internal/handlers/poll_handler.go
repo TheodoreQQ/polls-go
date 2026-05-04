@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 
 	"github.com/TheodoreQQ/polls-go/internal/models"
@@ -93,7 +92,6 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 
 	rows, err := h.DB.Query(queryPoll, userID)
 	if err != nil {
-		fmt.Println("Błąd SQL", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Błąd pobierania"})
 		return
 	}
@@ -206,7 +204,7 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var poll models.Poll
+	var poll models.PollForUser
 	first := true
 
 	for rows.Next() {
@@ -220,19 +218,117 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 		if first {
 			poll.ID = pID
 			poll.Question = pQuestion
-			poll.Options = []models.Option{}
+			poll.Options = []models.OptionUser{}
 			first = false
+		}
+
+		poll.Options = append(poll.Options, models.OptionUser{
+			ID:   oID,
+			Text: oText,
+		})
+	}
+	if first {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No active poll for that code"})
+		return
+	}
+	c.JSON(http.StatusOK, poll)
+
+}
+
+func (h *PollHandler) Vote(c *gin.Context) {
+	var vote models.Vote
+	if err := c.ShouldBindJSON(&vote); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+	query := `UPDATE options SET votes_count = votes_count + 1 WHERE id = $1 AND poll_id IN (SELECT id FROM polls WHERE is_active = true)`
+
+	tx, err := h.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+		return
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(query, vote.OptionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update votes"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Poll not found or inactive"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Vote successful"})
+
+}
+
+func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
+	pollID := c.Param("id")
+
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var userID int
+	switch v := val.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Błędny format ID użytkownika"})
+		return
+	}
+
+	query := `SELECT p.id, p.question, o.id, o.text, o.votes_count FROM polls p JOIN options o ON p.id = o.poll_id WHERE p.id = $1 AND p.owner_id = $2`
+
+	rows, err := h.DB.Query(query, pollID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+
+	defer rows.Close()
+
+	var poll models.Poll
+
+	for rows.Next() {
+		var pID, oID, oVotes int
+		var pQuestion, oText string
+
+		err = rows.Scan(&pID, &pQuestion, &oID, &oText, &oVotes)
+		if err != nil {
+			continue
+		}
+
+		if poll.ID == 0 {
+			poll.ID = pID
+			poll.Question = pQuestion
+			poll.Options = []models.Option{}
 		}
 
 		poll.Options = append(poll.Options, models.Option{
 			ID:     oID,
 			PollID: pID,
 			Text:   oText,
+			Votes:  oVotes,
 		})
 	}
-	if first {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No active poll for that code"})
+
+	if poll.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Poll not found or no permission"})
+		return
 	}
 	c.JSON(http.StatusOK, poll)
-
 }
