@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/TheodoreQQ/polls-go/internal/models"
@@ -15,12 +16,27 @@ type PollHandler struct {
 
 func (h *PollHandler) CreatePoll(c *gin.Context) {
 	var p models.Poll
-	userID, exists := c.Get("user_id")
 
 	if err := c.ShouldBindJSON(&p); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Validation error",
+			"message": "Question and options are required"})
 		return
 	}
+
+	if len(p.Options) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least two options are required"})
+		return
+	}
+
+	for _, opt := range p.Options {
+		if opt.Text == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Option text cannot be empty"})
+			return
+		}
+	}
+
+	userID, exists := c.Get("user_id")
 
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -66,6 +82,7 @@ func (h *PollHandler) CreatePoll(c *gin.Context) {
 }
 
 func (h *PollHandler) GetPoll(c *gin.Context) {
+
 	val, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -204,7 +221,7 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var poll models.PollForUser
+	var poll models.ResponseForStudent
 	first := true
 
 	for rows.Next() {
@@ -218,11 +235,11 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 		if first {
 			poll.ID = pID
 			poll.Question = pQuestion
-			poll.Options = []models.OptionUser{}
+			poll.Options = []models.OptionsForStudent{}
 			first = false
 		}
 
-		poll.Options = append(poll.Options, models.OptionUser{
+		poll.Options = append(poll.Options, models.OptionsForStudent{
 			ID:   oID,
 			Text: oText,
 		})
@@ -241,26 +258,53 @@ func (h *PollHandler) Vote(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
 		return
 	}
-	query := `UPDATE options SET votes_count = votes_count + 1 WHERE id = $1 AND poll_id IN (SELECT id FROM polls WHERE is_active = true)`
+
+	var pollID int
+	var isActive bool
+
+	err := h.DB.QueryRow("SELECT p.id, p.is_active FROM polls p JOIN options o ON p.id = o.poll_id WHERE o.id = $1", vote.OptionID).Scan(&pollID, &isActive)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Option not found"})
+		return
+	}
+
+	if !isActive {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Poll is not active"})
+		return
+	}
+	cookieName := fmt.Sprintf("voted_poll_%d", pollID)
+	if _, err := c.Cookie(cookieName); err == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You have already voted!"})
+		return
+	}
 
 	tx, err := h.DB.Begin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction failed"})
 		return
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(query, vote.OptionID)
+	query := `UPDATE options SET votes_count = votes_count + 1 WHERE id = $1 AND poll_id IN (SELECT id FROM polls WHERE is_active = true) 
+	RETURNING poll_id`
+
+	err = tx.QueryRow(query, vote.OptionID).Scan(&pollID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update votes"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Failed to update votes"})
 		return
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Poll not found or inactive"})
-		return
-	}
+	cookieName = fmt.Sprintf("voted_poll_%d", pollID)
+	c.SetCookie(
+		cookieName,
+		"true",
+		86400,
+		"/",
+		"localhost",
+		false,
+		true,
+	)
 
 	if err := tx.Commit(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the data"})
@@ -268,7 +312,6 @@ func (h *PollHandler) Vote(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Vote successful"})
-
 }
 
 func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
@@ -301,7 +344,8 @@ func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
 
 	defer rows.Close()
 
-	var poll models.Poll
+	var response models.PollResultsResponse
+	var totalVotes int
 
 	for rows.Next() {
 		var pID, oID, oVotes int
@@ -312,23 +356,25 @@ func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
 			continue
 		}
 
-		if poll.ID == 0 {
-			poll.ID = pID
-			poll.Question = pQuestion
-			poll.Options = []models.Option{}
+		if response.ID == 0 {
+			response.ID = pID
+			response.Question = pQuestion
 		}
 
-		poll.Options = append(poll.Options, models.Option{
-			ID:     oID,
-			PollID: pID,
-			Text:   oText,
-			Votes:  oVotes,
+		totalVotes += oVotes
+
+		response.Options = append(response.Options, models.OptionResult{
+			ID:         oID,
+			Text:       oText,
+			VotesCount: oVotes,
 		})
 	}
 
-	if poll.ID == 0 {
+	if response.ID == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Poll not found or no permission"})
 		return
 	}
-	c.JSON(http.StatusOK, poll)
+
+	response.TotalVotes = totalVotes
+	c.JSON(http.StatusOK, response)
 }
