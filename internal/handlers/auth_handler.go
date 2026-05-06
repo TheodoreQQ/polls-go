@@ -18,25 +18,26 @@ type AuthHandler struct {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var u models.User
+	var req models.RegisterRequest
 
-	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error:" + " Username must be at least 3 characters long  as well as password"})
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Validation error" + err.Error()})
 		return
 	}
 
 	storedHashPass := string(hashedPassword)
 
 	queryUser := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id`
+	var userID int
 
-	err = h.DB.QueryRow(queryUser, u.Username, storedHashPass).Scan(&u.ID)
+	err = h.DB.QueryRow(queryUser, req.Username, storedHashPass).Scan(&userID)
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Błąd zapisu do bazy"})
 		return
@@ -50,7 +51,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var u models.User
 
 	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Validation error",
+			"message": "username and password are required"})
 		return
 	}
 
