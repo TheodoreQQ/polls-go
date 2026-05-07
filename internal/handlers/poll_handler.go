@@ -416,3 +416,41 @@ func (h *PollHandler) DeletePoll(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, gin.H{"message": "Poll deleted successfully"})
 }
+
+func (h *PollHandler) DeactivatePoll(c *gin.Context) {
+	pollID := c.Param("id")
+	val, exists := c.Get("user_id")
+
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+
+	var userID int
+
+	switch v := val.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "incorrect id format"})
+		return
+	}
+
+	query := `UPDATE polls SET is_active = false WHERE is_active = true AND id = $1 AND owner_id = $2`
+
+	result, err := h.DB.Exec(query, pollID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to deactivate poll"})
+		return
+	}
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Poll is already deactivated or does not exist or you don't have permission to deactivate it"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "poll status has been changed succesfully"})
+}
