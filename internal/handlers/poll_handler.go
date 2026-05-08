@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/TheodoreQQ/polls-go/internal/models"
 	"github.com/TheodoreQQ/polls-go/internal/utils"
@@ -56,8 +57,8 @@ func (h *PollHandler) CreatePoll(c *gin.Context) {
 	}
 	defer tx.Rollback()
 
-	queryPoll := `INSERT INTO polls (question, owner_id) VALUES ($1, $2) RETURNING id`
-	err = tx.QueryRow(queryPoll, p.Question, p.OwnerID).Scan(&p.ID)
+	queryPoll := `INSERT INTO polls (question, owner_id) VALUES ($1, $2) RETURNING id, created_at`
+	err = tx.QueryRow(queryPoll, p.Question, p.OwnerID).Scan(&p.ID, &p.CreatedAt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Błąd zapisu do bazy"})
 		return
@@ -83,6 +84,7 @@ func (h *PollHandler) CreatePoll(c *gin.Context) {
 
 func (h *PollHandler) GetPoll(c *gin.Context) {
 
+	var pCreatedAt time.Time
 	val, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -100,7 +102,7 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 		return
 	}
 
-	queryPoll := `SELECT p.id, p.question, p.is_active, COALESCE(o.id, 0), COALESCE(o.text, ''), 
+	queryPoll := `SELECT p.id, p.question, p.is_active, p.created_at,COALESCE(o.id, 0), COALESCE(o.text, ''), 
 	COALESCE(o.votes_count, 0)
 								FROM polls p 
 								LEFT JOIN options o ON p.id = o.poll_id
@@ -124,17 +126,18 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 		var pQuestion, oText string
 		var pActive bool
 
-		err := rows.Scan(&pID, &pQuestion, &pActive, &oID, &oText, &oVotes)
+		err := rows.Scan(&pID, &pQuestion, &pActive, &pCreatedAt, &oID, &oText, &oVotes)
 		if err != nil {
 			continue
 		}
 
 		if _, exists := pollsMap[pID]; !exists {
 			pollsMap[pID] = &models.Poll{
-				ID:       pID,
-				Question: pQuestion,
-				IsActive: pActive,
-				Options:  []models.Option{},
+				ID:        pID,
+				Question:  pQuestion,
+				IsActive:  pActive,
+				CreatedAt: pCreatedAt,
+				Options:   []models.Option{},
 			}
 			pollsOrder = append(pollsOrder, pID)
 		}
@@ -453,4 +456,80 @@ func (h *PollHandler) DeactivatePoll(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "poll status has been changed succesfully"})
+}
+
+func (h *PollHandler) UpdateQuestion(c *gin.Context) {
+	pollID := c.Param("id")
+	val, exists := c.Get("user_id")
+	var p models.UpdatePollWithOptionRequest
+
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+
+	var userID int
+
+	switch v := val.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "incorrect id format"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if p.Question == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Question cannot be empty"})
+		return
+	}
+
+	tx, err := h.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+		return
+	}
+
+	defer tx.Rollback()
+
+	query := `UPDATE polls SET question = $1 WHERE id = $2 AND owner_id = $3`
+
+	result, err := tx.Exec(query, p.Question, pollID, userID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update question"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Poll not found or no permission"})
+		return
+	}
+	for i := range p.Options {
+		queryOpt := `UPDATE options SET text = $1 WHERE id = $2 AND poll_id = $3`
+		result, err := tx.Exec(queryOpt, p.Options[i].Text, p.Options[i].ID, pollID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save options"})
+			return
+		}
+		if r, _ := result.RowsAffected(); r == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "option not found"})
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "question and/or options updated succesfully"})
+
 }
