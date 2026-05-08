@@ -40,6 +40,7 @@ func main() {
 	protected.GET("/polls/:id/results", pollHandler.GetVotesByPoll)
 	protected.DELETE("/polls/:id", pollHandler.DeletePoll)
 	protected.PATCH("/polls/:id/deactivate", pollHandler.DeactivatePoll)
+	protected.PATCH("/polls/:id/question", pollHandler.UpdateQuestion)
 
 	// Start serwera
 	r.Run(":8080")
