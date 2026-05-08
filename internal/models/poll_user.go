@@ -18,3 +18,11 @@ type OptionResult struct {
 	Text       string `json:"text"`
 	VotesCount int    `json:"votes"`
 }
+
+type UpdatePollWithOptionRequest struct {
+	Question string `json:"question"`
+	Options  []struct {
+		ID   int    `json:"id"`
+		Text string `json:"text"`
+	} `json:"options"`
+}
