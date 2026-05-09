@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS polls (
   id SERIAL PRIMARY KEY,
   owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   question TEXT NOT NULL,
-  is_active BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  
 );
 
