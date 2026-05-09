@@ -6,6 +6,7 @@ import (
 
 	"github.com/TheodoreQQ/polls-go/internal/handlers"
 	"github.com/TheodoreQQ/polls-go/internal/middleware"
+	"github.com/TheodoreQQ/polls-go/internal/repository"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
@@ -19,8 +20,10 @@ func main() {
 	}
 	defer db.Close()
 
+	pollRepo := &repository.PollRepository{DB: db}
+	pollHandler := &handlers.PollHandler{Repo: pollRepo}
+
 	// Inicjalizacja handlera
-	pollHandler := &handlers.PollHandler{DB: db}
 	authHandler := &handlers.AuthHandler{DB: db}
 
 	// Konfiguracja routera Gin
@@ -38,7 +41,7 @@ func main() {
 	protected.GET("/polls", pollHandler.GetPoll)
 	protected.PATCH("/polls/:id/activate", pollHandler.ActivatePoll)
 	protected.GET("/polls/:id/results", pollHandler.GetVotesByPoll)
-	protected.DELETE("/polls/:id", pollHandler.DeletePoll)
+	protected.DELETE("/polls/:id/delete", pollHandler.DeletePoll)
 	protected.PATCH("/polls/:id/deactivate", pollHandler.DeactivatePoll)
 	protected.PATCH("/polls/:id/question", pollHandler.UpdateQuestion)
 
