@@ -1,9 +1,13 @@
 package models
 
+import "time"
+
 type ReponseForUser struct {
-	ID       int      `json:"id"`
-	Question string   `json:"question"`
-	Options  []Option `json:"options"`
+	ID        int       `json:"id"`
+	Question  string    `json:"question"`
+	Options   []Option  `json:"options"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type PollResultsResponse struct {
