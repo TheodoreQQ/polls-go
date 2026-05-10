@@ -1,20 +1,19 @@
 package handlers
 
 import (
-	"database/sql"
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/TheodoreQQ/polls-go/internal/models"
+	"github.com/TheodoreQQ/polls-go/internal/repository"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthHandler struct {
-	DB *sql.DB
+	Repo *repository.AuthRepository
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -27,19 +26,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 
+	err = h.Repo.CreateUser(req.Username, string(hashedPassword))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Validation error" + err.Error()})
-		return
-	}
-
-	storedHashPass := string(hashedPassword)
-
-	queryUser := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id`
-	var userID int
-
-	err = h.DB.QueryRow(queryUser, req.Username, storedHashPass).Scan(&userID)
-	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Błąd zapisu do bazy"})
+		if errors.Is(err, repository.ErrUserAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -57,10 +50,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	var storedID int
-	var storedHash string
-
-	err := h.DB.QueryRow("SELECT id, password_hash FROM users WHERE username = $1", u.Username).Scan(&storedID, &storedHash)
+	storedID, storedHash, err := h.Repo.GetUser(u.Username)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
@@ -68,12 +58,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(u.Password))
 	if err != nil {
-		fmt.Println("Log hasło nie pasuje")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-
 		return
 	}
-	fmt.Print("Hasło poprawne")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": storedID,
