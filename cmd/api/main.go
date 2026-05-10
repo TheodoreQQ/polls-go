@@ -3,10 +3,12 @@ package main
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	"github.com/TheodoreQQ/polls-go/internal/handlers"
 	"github.com/TheodoreQQ/polls-go/internal/middleware"
 	"github.com/TheodoreQQ/polls-go/internal/repository"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
@@ -24,10 +26,20 @@ func main() {
 	pollHandler := &handlers.PollHandler{Repo: pollRepo}
 
 	// Inicjalizacja handlera
-	authHandler := &handlers.AuthHandler{DB: db}
+	authRepo := &repository.AuthRepository{DB: db}
+	authHandler := &handlers.AuthHandler{Repo: authRepo}
 
 	// Konfiguracja routera Gin
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Definicja endpointu
 	r.POST("/register", authHandler.Register)
