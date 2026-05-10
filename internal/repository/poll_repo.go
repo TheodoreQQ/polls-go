@@ -15,6 +15,7 @@ var (
 	ErrTxFailed           = errors.New("transaction failed")
 	ErrOpFailed           = errors.New("operation failed")
 	ErrAlreadyDeactivated = errors.New("poll is already deactivated")
+	ErrUserAlreadyExists  = errors.New("user already exists")
 )
 
 type PollRepository struct {
