@@ -73,6 +73,7 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 	polls, err := h.Repo.GetPollById(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch polls"})
+		return
 	}
 
 	c.JSON(http.StatusOK, polls)
@@ -89,6 +90,7 @@ func (h *PollHandler) ActivatePoll(c *gin.Context) {
 	userID, err := utils.GetUserId(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
 
 	roomCode, err := h.Repo.Activate(pollID, userID)
@@ -194,6 +196,7 @@ func (h *PollHandler) DeletePoll(c *gin.Context) {
 	err = h.Repo.DeletePoll(pollID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Poll not found or no permission"})
+		return
 	}
 
 	c.JSON(http.StatusNoContent, gin.H{"message": "Poll deleted successfully"})
@@ -210,7 +213,7 @@ func (h *PollHandler) DeactivatePoll(c *gin.Context) {
 	userID, err := utils.GetUserId(c)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Failed to retrieve data"})
 		return
 	}
 
