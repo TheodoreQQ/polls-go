@@ -8,6 +8,7 @@ import (
 	"github.com/TheodoreQQ/polls-go/internal/handlers"
 	"github.com/TheodoreQQ/polls-go/internal/middleware"
 	"github.com/TheodoreQQ/polls-go/internal/repository"
+	"github.com/TheodoreQQ/polls-go/internal/ws"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -22,12 +23,21 @@ func main() {
 	}
 	defer db.Close()
 
-	pollRepo := &repository.PollRepository{DB: db}
-	pollHandler := &handlers.PollHandler{Repo: pollRepo}
-
 	// Inicjalizacja handlera
+	pollRepo := &repository.PollRepository{DB: db}
 	authRepo := &repository.AuthRepository{DB: db}
-	authHandler := &handlers.AuthHandler{Repo: authRepo}
+
+	hub := ws.NewHub()
+	go hub.Run()
+
+	pollHandler := &handlers.PollHandler{
+		Repo: pollRepo,
+		Hub:  hub,
+	}
+
+	authHandler := &handlers.AuthHandler{
+		Repo: authRepo,
+	}
 
 	// Konfiguracja routera Gin
 	r := gin.Default()
@@ -46,7 +56,7 @@ func main() {
 	r.POST("/login", authHandler.Login)
 	r.GET("/join/:code", pollHandler.GetPollByCode)
 	r.POST("/vote", pollHandler.Vote)
-
+	r.GET("/ws/:id", pollHandler.WSHandler)
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware())
 	protected.POST("/polls", pollHandler.CreatePoll)
