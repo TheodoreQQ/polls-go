@@ -12,12 +12,15 @@ import (
 	"github.com/TheodoreQQ/polls-go/internal/models"
 	"github.com/TheodoreQQ/polls-go/internal/repository"
 	"github.com/TheodoreQQ/polls-go/internal/utils"
+	"github.com/TheodoreQQ/polls-go/internal/ws"
+	"github.com/gorilla/websocket"
 
 	"github.com/gin-gonic/gin"
 )
 
 type PollHandler struct {
 	Repo *repository.PollRepository
+	Hub  *ws.Hub
 }
 
 func (h *PollHandler) CreatePoll(c *gin.Context) {
@@ -117,9 +120,10 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 }
 
 func (h *PollHandler) Vote(c *gin.Context) {
+	fmt.Printf("DEBUG: Adres Huba: %p\n", h.Hub)
 	var vote models.Vote
 	if err := c.ShouldBindJSON(&vote); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve data"})
 		return
 	}
 
@@ -139,6 +143,17 @@ func (h *PollHandler) Vote(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Poll is deactivated or you chose wrong option"})
 		return
+	}
+
+	results, err := h.Repo.GetResultsForBroadcast(actualPollID)
+	fmt.Printf("Wysyłam do Huba: PollID=%d, Dane=%v\n", actualPollID, results) // DEBUG
+	if err == nil {
+		h.Hub.Broadcast <- ws.VoteUpdate{
+			PollID: actualPollID,
+			Data:   results,
+		}
+	} else {
+		fmt.Printf("Broadcast Error: %v\n", err)
 	}
 
 	cookieName = fmt.Sprintf("voted_poll_%d", actualPollID)
@@ -263,4 +278,43 @@ func (h *PollHandler) UpdateQuestion(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully"})
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func (h *PollHandler) WSHandler(c *gin.Context) {
+	pollID, _ := strconv.Atoi(c.Param("id"))
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+
+	h.Hub.Mu.Lock()
+	if h.Hub.Rooms == nil {
+		h.Hub.Rooms = make(map[int]map[*websocket.Conn]bool)
+	}
+	if h.Hub.Rooms[pollID] == nil {
+		h.Hub.Rooms[pollID] = make(map[*websocket.Conn]bool)
+	}
+	h.Hub.Rooms[pollID][conn] = true
+	h.Hub.Mu.Unlock()
+
+	defer func() {
+		h.Hub.Mu.Lock()
+		delete(h.Hub.Rooms[pollID], conn)
+		h.Hub.Mu.Unlock()
+		conn.Close()
+	}()
+
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+	}
 }
