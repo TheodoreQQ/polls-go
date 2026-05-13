@@ -355,3 +355,42 @@ func (r *PollRepository) GetPollIDByOption(optionID int) (int, error) {
 
 	return pollID, nil
 }
+
+func (r *PollRepository) GetResultsForBroadcast(pollID int) (*models.PollResultsResponse, error) {
+	var resp models.PollResultsResponse
+	total := 0
+	err := r.DB.QueryRow(`
+		SELECT id, question 
+		FROM polls 
+		WHERE id = $1`,
+		pollID,
+	).Scan(&resp.ID, &resp.Question)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.DB.Query(`
+		SELECT id, text, votes_count
+		FROM options 	
+		WHERE poll_id = $1 
+		ORDER BY id ASC`,
+		pollID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var opt models.OptionResult
+		if err := rows.Scan(&opt.ID, &opt.Text, &opt.VotesCount); err != nil {
+			return nil, err
+		}
+		total += opt.VotesCount
+		resp.Options = append(resp.Options, opt)
+	}
+
+	resp.TotalVotes = total
+	return &resp, nil
+}
