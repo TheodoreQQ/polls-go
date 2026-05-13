@@ -29,3 +29,9 @@ type Vote struct {
 	OptionID int `json:"option_id"`
 	VoterID  int `json:"voter_id"`
 }
+
+type OptionResponse struct {
+	ID    int    `json:"id"`
+	Text  string `json:"text"`
+	Votes int    `json:"votes"`
+}
