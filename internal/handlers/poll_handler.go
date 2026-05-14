@@ -2,10 +2,13 @@ package handlers
 
 import (
 	// "fmt"
+	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	// "time"
 
@@ -13,16 +16,22 @@ import (
 	"github.com/TheodoreQQ/polls-go/internal/repository"
 	"github.com/TheodoreQQ/polls-go/internal/utils"
 	"github.com/TheodoreQQ/polls-go/internal/ws"
+	"github.com/TheodoreQQ/polls-go/pb"
 	"github.com/gorilla/websocket"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/gin-gonic/gin"
 )
 
+// struct that manages poll requests and handles real-time updates through websockets
 type PollHandler struct {
 	Repo *repository.PollRepository
 	Hub  *ws.Hub
 }
 
+// creating a new poll
 func (h *PollHandler) CreatePoll(c *gin.Context) {
 	var p models.ReponseForUser
 
@@ -65,6 +74,7 @@ func (h *PollHandler) CreatePoll(c *gin.Context) {
 	c.JSON(http.StatusCreated, p)
 }
 
+// get all polls that belongs to a user
 func (h *PollHandler) GetPoll(c *gin.Context) {
 
 	userID, err := utils.GetUserId(c)
@@ -73,7 +83,7 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 		return
 	}
 
-	polls, err := h.Repo.GetPollById(userID)
+	polls, err := h.Repo.GetPoll(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch polls"})
 		return
@@ -82,6 +92,7 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 	c.JSON(http.StatusOK, polls)
 }
 
+// changes is_active poll status = true
 func (h *PollHandler) ActivatePoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -107,6 +118,7 @@ func (h *PollHandler) ActivatePoll(c *gin.Context) {
 		"code":    roomCode})
 }
 
+// using a 4-digit code you can get the question with the answers
 func (h *PollHandler) GetPollByCode(c *gin.Context) {
 	code := c.Param("code")
 
@@ -119,6 +131,7 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 	c.JSON(http.StatusOK, poll)
 }
 
+// allows you to vote for an answer using its id
 func (h *PollHandler) Vote(c *gin.Context) {
 	fmt.Printf("DEBUG: Adres Huba: %p\n", h.Hub)
 	var vote models.Vote
@@ -170,6 +183,7 @@ func (h *PollHandler) Vote(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Vote successful"})
 }
 
+// gives votes to a poll by its id
 func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -193,6 +207,7 @@ func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// user can delete a poll by its id
 func (h *PollHandler) DeletePoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -217,6 +232,7 @@ func (h *PollHandler) DeletePoll(c *gin.Context) {
 	c.JSON(http.StatusNoContent, gin.H{"message": "Poll deleted successfully"})
 }
 
+// user can change is_active status = false
 func (h *PollHandler) DeactivatePoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -242,6 +258,7 @@ func (h *PollHandler) DeactivatePoll(c *gin.Context) {
 		"message": "poll status has been changed succesfully"})
 }
 
+// User can update the question of existing poll or its options by its id
 func (h *PollHandler) UpdateQuestion(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -280,6 +297,7 @@ func (h *PollHandler) UpdateQuestion(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully"})
 }
 
+// handler upgrades the HTTP connection to the websocket protcol
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -317,4 +335,51 @@ func (h *PollHandler) WSHandler(c *gin.Context) {
 			break
 		}
 	}
+}
+
+// handler triggers the gRCP call to the reporter service and serves the generated CSV file to the user by its id
+
+func (h *PollHandler) DownloadReport(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, gin.H{"error": "Musisz być zalogowany"})
+		return
+	}
+	idStr := c.Param("id")
+	pollID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Nieprawidłowe ID ankiety"})
+		return
+	}
+
+	md := metadata.Pairs("x-user-id", fmt.Sprintf("%v", userID))
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("Błąd połączenia z gRPC: %v", err)
+		c.JSON(500, gin.H{"error": "Serwis raportów jest nieosiągalny"})
+		return
+	}
+	defer conn.Close()
+
+	client := pb.NewReportServiceClient(conn)
+
+	fullCtx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	resp, err := client.GenerateReport(fullCtx, &pb.ExportRequest{
+		PollId: int32(pollID),
+		Format: "csv",
+	})
+
+	if err != nil {
+		log.Printf("Błąd podczas generowania raportu: %v", err)
+		c.JSON(500, gin.H{"error": "Nie udało się wygenerować raportu"})
+		return
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", resp.Filename))
+	c.Data(200, "text/plain; charset=utf-8", resp.Content)
 }
