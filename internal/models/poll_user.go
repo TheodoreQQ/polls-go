@@ -14,6 +14,7 @@ type PollResultsResponse struct {
 	ID         int            `json:"id"`
 	Question   string         `json:"question"`
 	Options    []OptionResult `json:"options"`
+	OwnerID    int            `json:"-"`
 	TotalVotes int            `json:"total_votes"`
 }
 
