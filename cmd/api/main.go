@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 	"time"
 
 	"github.com/TheodoreQQ/polls-go/internal/handlers"
@@ -11,24 +12,35 @@ import (
 	"github.com/TheodoreQQ/polls-go/internal/ws"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	// Połączenie z bazą
-	connStr := "host=localhost port=5432 user=user password=password dbname=polls_db sslmode=disable"
+	// Conntecting to database
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		log.Fatal("Failed to load .env file")
+	}
+	connStr := os.Getenv("DB_URL")
+	if connStr == "" {
+		log.Fatal("URL is empty")
+	}
+
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to database", err)
 	}
 	defer db.Close()
 
-	// Inicjalizacja handlera
+	// Repo initialization
 	pollRepo := &repository.PollRepository{DB: db}
 	authRepo := &repository.AuthRepository{DB: db}
 
 	hub := ws.NewHub()
 	go hub.Run()
+
+	// Handler initialization
 
 	pollHandler := &handlers.PollHandler{
 		Repo: pollRepo,
@@ -39,7 +51,7 @@ func main() {
 		Repo: authRepo,
 	}
 
-	// Konfiguracja routera Gin
+	// Gin router configuration
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -51,7 +63,8 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Definicja endpointu
+	// Endpoints definitions
+	r.Use(middleware.UsageLogger(db))
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.GET("/join/:code", pollHandler.GetPollByCode)
@@ -66,6 +79,7 @@ func main() {
 	protected.DELETE("/polls/:id/delete", pollHandler.DeletePoll)
 	protected.PATCH("/polls/:id/deactivate", pollHandler.DeactivatePoll)
 	protected.PATCH("/polls/:id/question", pollHandler.UpdateQuestion)
+	protected.GET("polls/:id/download", pollHandler.DownloadReport)
 
 	// Start serwera
 	r.Run(":8080")
