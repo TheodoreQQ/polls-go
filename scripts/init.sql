@@ -26,3 +26,13 @@ CREATE TABLE IF NOT EXISTS votes (
   option_id INTEGER NOT NULL REFERENCES options(id) ON DELETE CASCADE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS api_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,         
+    action TEXT,             
+    status_code INTEGER,      
+    path TEXT,                
+    latency_ms INTEGER,       
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
