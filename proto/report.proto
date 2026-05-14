@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "./pb";
+
+message ExportRequest {
+  int32 poll_id = 1;
+  string format = 2;
+}
+
+message ExportResponse {
+  bytes content = 1;
+  string filename = 2;
+}
+
+service ReportService {
+  rpc GenerateReport(ExportRequest) returns (ExportResponse);
+}
