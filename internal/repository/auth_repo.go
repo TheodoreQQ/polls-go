@@ -6,10 +6,12 @@ import (
 	"github.com/lib/pq"
 )
 
+// struct handles db operations for user authentication and management
 type AuthRepository struct {
 	DB *sql.DB
 }
 
+// inserts new user record in the db
 func (r *AuthRepository) CreateUser(username, hashedPassword string) error {
 	var userID int
 
@@ -27,6 +29,7 @@ func (r *AuthRepository) CreateUser(username, hashedPassword string) error {
 	return nil
 }
 
+// retrieves a user from database based on their unique username
 func (r *AuthRepository) GetUser(username string) (int, string, error) {
 	var storedID int
 	var storedHash string

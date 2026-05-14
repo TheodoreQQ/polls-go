@@ -9,6 +9,7 @@ import (
 	"github.com/TheodoreQQ/polls-go/internal/utils"
 )
 
+// errors to handle different situations
 var (
 	ErrNotFound           = errors.New("record not found")
 	ErrNoPermission       = errors.New("no permission to perform this action")
@@ -26,6 +27,7 @@ func NewPollRepository(db *sql.DB) *PollRepository {
 	return &PollRepository{DB: db}
 }
 
+// inserts a new poll record and its options into the db
 func (r *PollRepository) Create(poll *models.ReponseForUser, userID int) error {
 
 	tx, err := r.DB.Begin()
@@ -52,7 +54,8 @@ func (r *PollRepository) Create(poll *models.ReponseForUser, userID int) error {
 	return tx.Commit()
 }
 
-func (r *PollRepository) GetPollById(userID int) ([]models.ReponseForUser, error) {
+// retrieves all polls from the database
+func (r *PollRepository) GetPoll(userID int) ([]models.ReponseForUser, error) {
 
 	queryPoll := `SELECT p.id, p.question, p.is_active, p.created_at,COALESCE(o.id, 0), COALESCE(o.text, ''),
 	COALESCE(o.votes_count, 0)
@@ -111,6 +114,7 @@ func (r *PollRepository) GetPollById(userID int) ([]models.ReponseForUser, error
 	return result, nil
 }
 
+// changes poll status from false -> true
 func (r *PollRepository) Activate(pollID, userID int) (string, error) {
 
 	roomCode := utils.GenerateCode()
@@ -145,6 +149,7 @@ func (r *PollRepository) Activate(pollID, userID int) (string, error) {
 	return roomCode, nil
 }
 
+// retrieves a question with associated options to a student
 func (r *PollRepository) GetPollByCode(code string) (*models.ResponseForStudent, error) {
 	query := `SELECT p.id, p.question, o.id, o.text
 						FROM polls p
@@ -188,6 +193,7 @@ func (r *PollRepository) GetPollByCode(code string) (*models.ResponseForStudent,
 	return poll, nil
 }
 
+// increments the vote count for a specific option
 func (r *PollRepository) VotePoll(optionID int) (int, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
@@ -216,6 +222,7 @@ func (r *PollRepository) VotePoll(optionID int) (int, error) {
 	return pollID, nil
 }
 
+// retrieves a specific poll with votes count
 func (r *PollRepository) GetVotesByPolll(pollID, userID int) (*models.PollResultsResponse, error) {
 	query := `SELECT p.id, p.question, o.id, o.text, o.votes_count FROM polls p JOIN options o ON p.id = o.poll_id WHERE p.id = $1 AND p.owner_id = $2`
 
@@ -262,6 +269,7 @@ func (r *PollRepository) GetVotesByPolll(pollID, userID int) (*models.PollResult
 	return &response, nil
 }
 
+// deletes a specific poll using its id
 func (r *PollRepository) DeletePoll(pollID, userID int) error {
 
 	query := `DELETE FROM polls WHERE id = $1 AND owner_id = $2`
@@ -278,6 +286,7 @@ func (r *PollRepository) DeletePoll(pollID, userID int) error {
 	return nil
 }
 
+// changes status from true -> false
 func (r *PollRepository) DeactivatePoll(pollID, userID int) error {
 	var ownerID int
 	var isActive bool
@@ -306,6 +315,7 @@ func (r *PollRepository) DeactivatePoll(pollID, userID int) error {
 	return nil
 }
 
+// allows to change question other options to a specific poll
 func (r *PollRepository) UpdateQuestion(pollID, userID int, req models.UpdatePollWithOptionRequest) error {
 
 	tx, err := r.DB.Begin()
@@ -341,6 +351,7 @@ func (r *PollRepository) UpdateQuestion(pollID, userID int, req models.UpdatePol
 	return tx.Commit()
 }
 
+// retrieves the parent poll id associated with a specific option
 func (r *PollRepository) GetPollIDByOption(optionID int) (int, error) {
 	var pollID int
 	query := `SELECT poll_id FROM options WHERE id = $1`
@@ -356,15 +367,16 @@ func (r *PollRepository) GetPollIDByOption(optionID int) (int, error) {
 	return pollID, nil
 }
 
+// fetches an aggregate summary of poll results for websocket broadcasting
 func (r *PollRepository) GetResultsForBroadcast(pollID int) (*models.PollResultsResponse, error) {
 	var resp models.PollResultsResponse
 	total := 0
 	err := r.DB.QueryRow(`
-		SELECT id, question 
+		SELECT id, question, owner_id 
 		FROM polls 
 		WHERE id = $1`,
 		pollID,
-	).Scan(&resp.ID, &resp.Question)
+	).Scan(&resp.ID, &resp.Question, &resp.OwnerID)
 
 	if err != nil {
 		return nil, err

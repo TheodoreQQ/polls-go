@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// function that checks the format of retrieved user ids
 func GetUserId(c *gin.Context) (int, error) {
 	val, exists := c.Get("user_id")
 	if !exists {

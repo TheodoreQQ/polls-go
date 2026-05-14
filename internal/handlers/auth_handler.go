@@ -12,9 +12,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// intializing struct to handle HTTP requests related to user authentication
 type AuthHandler struct {
 	Repo *repository.AuthRepository
 }
+
+// register handler to create a new user account in DB
 
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
@@ -40,6 +43,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 }
 
+// login handles user authentication and return JWT token
 func (h *AuthHandler) Login(c *gin.Context) {
 	var u models.User
 

@@ -2,6 +2,7 @@ package utils
 
 import "math/rand"
 
+// generates random code for polls
 func GenerateCode() string {
 	const chars = "ABCDEFGHIJKLMNOPQRTSUWXYZ123456789"
 	code := make([]byte, 4)

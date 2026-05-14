@@ -9,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// function that deals with authentication, by checking the bearer token
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bearerToken := c.GetHeader("Authorization")
