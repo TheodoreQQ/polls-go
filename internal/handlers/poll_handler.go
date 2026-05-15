@@ -32,8 +32,20 @@ type PollHandler struct {
 }
 
 // creating a new poll
+// @Summary      Create a new poll
+// @Description  Create a poll with a question and multiple options
+// @Tags         Poll Management
+// @Accept       json
+// @Produce      json
+// @Security 		 BearerAuth
+// @Param        poll  body      models.CreatePollRequest  true  "Poll Data"
+// @Success      201   {object}  models.Poll
+// @Failure      500   {object}  models.ErrorInternalServer "Internal server error"
+// @Failure      401   {object}  models.ErrorUnauthorized "Status unauthorized"
+// @Failure      400   {object}  models.ErrorBadRequest "Status not found"
+// @Router       /polls [post]
 func (h *PollHandler) CreatePoll(c *gin.Context) {
-	var p models.ReponseForUser
+	var p models.ResponseForUser
 
 	if err := c.ShouldBindJSON(&p); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -75,6 +87,15 @@ func (h *PollHandler) CreatePoll(c *gin.Context) {
 }
 
 // get all polls that belongs to a user
+// @Summary Get Polls for user
+// @Description Get all polls that belongs to user
+// @Tags			Poll Management
+// @Security BearerAuth
+// @Produce 	json
+// @Success		200	{array}	models.Poll
+// @Failure		500 {object}	map[string]string "Internal server error"
+// @Failure		401 {object}	map[string]string "Status unauthorized"
+// @Router /polls [get]
 func (h *PollHandler) GetPoll(c *gin.Context) {
 
 	userID, err := utils.GetUserId(c)
@@ -93,6 +114,15 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 }
 
 // changes is_active poll status = true
+// ActivatePoll aktywuje ankietę, aby można było na nią głosować
+// @Summary      Activate a poll
+// @Tags         Poll Management
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Poll ID"
+// @Success      200  {object}  map[string]string
+// @Failure		401 {object}	models.ErrorUnauthorized "Status unauthorized"
+// @Failure		404 {object}	models.ErrorBadRequest "Status not found"
+// @Router       /polls/{id}/activate [patch]
 func (h *PollHandler) ActivatePoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -119,6 +149,12 @@ func (h *PollHandler) ActivatePoll(c *gin.Context) {
 }
 
 // using a 4-digit code you can get the question with the answers
+// @Summary      Get poll by share code
+// @Tags         Public
+// @Param        code   path      string  true  "Poll Code"
+// @Success      200    {object}  models.Poll
+// @Failure		404 {object}	models.ErrorNotFound "Status not found"
+// @Router       /join/{code} [get]
 func (h *PollHandler) GetPollByCode(c *gin.Context) {
 	code := c.Param("code")
 
@@ -132,6 +168,15 @@ func (h *PollHandler) GetPollByCode(c *gin.Context) {
 }
 
 // allows you to vote for an answer using its id
+// @Summary      Vote in a poll
+// @Tags         Public
+// @Param        code   path      string          true  "Poll Code"
+// @Param        vote   body      models.VoteRequest  true  "Option ID"
+// @Success      200    {object}  map[string]string
+// @Failure		400 {object}	models.ErrorBadRequest "Status bad request"
+// @Failure		403 {object}	models.ErrorForbiddenVote "Status forbidden"
+// @Failure		404 {object}	models.ErrorNotFound "Status not found"
+// @Router       /vote [post]
 func (h *PollHandler) Vote(c *gin.Context) {
 	fmt.Printf("DEBUG: Adres Huba: %p\n", h.Hub)
 	var vote models.Vote
@@ -159,7 +204,6 @@ func (h *PollHandler) Vote(c *gin.Context) {
 	}
 
 	results, err := h.Repo.GetResultsForBroadcast(actualPollID)
-	fmt.Printf("Wysyłam do Huba: PollID=%d, Dane=%v\n", actualPollID, results) // DEBUG
 	if err == nil {
 		h.Hub.Broadcast <- ws.VoteUpdate{
 			PollID: actualPollID,
@@ -184,6 +228,15 @@ func (h *PollHandler) Vote(c *gin.Context) {
 }
 
 // gives votes to a poll by its id
+// @Summary      Get poll statistics
+// @Tags         Poll Management
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Poll ID"
+// @Success      200  {array}   models.ResponseForUser
+// @Failure		400 {object}	models.ErrorBadRequest "Status bad request"
+// @Failure		401 {object}	models.ErrorUnauthorized "Status unauthorized"
+// @Failure		404 {object}	models.ErrorNotFound "Status not found"
+// @Router       /polls/{id}/results [get]
 func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -208,6 +261,16 @@ func (h *PollHandler) GetVotesByPoll(c *gin.Context) {
 }
 
 // user can delete a poll by its id
+// @Summary      Delete a poll
+// @Description  Remove a poll, its options, and all associated votes. Only the author can delete the poll.
+// @Tags         Poll Management
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Poll ID"
+// @Success      204  {object}  nil  "Successfully deleted, no content"
+// @Failure		400 {object}	models.ErrorBadRequest "Status bad request"
+// @Failure      401  {object}  models.ErrorUnauthorized "Status unauthorized"
+// @Failure      404  {object}  models.ErrorNotFound "Status not found"
+// @Router       /polls/{id}/delete [delete]
 func (h *PollHandler) DeletePoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -233,6 +296,15 @@ func (h *PollHandler) DeletePoll(c *gin.Context) {
 }
 
 // user can change is_active status = false
+// DeactivatePoll dezaktywuje ankietę
+// @Summary      Deactivate a poll
+// @Tags         Poll Management
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Poll ID"
+// @Success      200  {object}  map[string]string
+// @Failure		400 {object}	models.ErrorBadRequest "Status bad request"
+// @Failure		404 {object}	models.ErrorNotFound "Status not found"
+// @Router       /polls/{id}/deactivate [patch]
 func (h *PollHandler) DeactivatePoll(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -259,6 +331,16 @@ func (h *PollHandler) DeactivatePoll(c *gin.Context) {
 }
 
 // User can update the question of existing poll or its options by its id
+// @Summary      Update poll question
+// @Tags         Poll Management
+// @Security     BearerAuth
+// @Param        id        path      int                true  "Poll ID"
+// @Param        question  body      models.UpdatePollRequest   true  "New Question"
+// @Success      200       {object}  models.Poll
+// @Failure		400 {object}	models.ErrorBadRequest "Status bad request"
+// @Failure		404 {object}	models.ErrorNotFound "Status not found"
+// @Failure		500 {object}	models.ErrorInternalServer "Internal server error"
+// @Router       /polls/{id}/question [patch]
 func (h *PollHandler) UpdateQuestion(c *gin.Context) {
 	strPollID := c.Param("id")
 	pollID, err := strconv.Atoi(strPollID)
@@ -338,7 +420,16 @@ func (h *PollHandler) WSHandler(c *gin.Context) {
 }
 
 // handler triggers the gRCP call to the reporter service and serves the generated CSV file to the user by its id
-
+// @Summary      Download poll report
+// @Tags         Poll Management
+// @Security     BearerAuth
+// @Produce      text/csv
+// @Param        id   path      int  true  "Poll ID"
+// @Success      200  {file}    binary
+// @Failure		400 {object}	models.ErrorBadRequest "Status bad request"
+// @Failure		401 {object}	models.ErrorUnauthorized "Status bad request"
+// @Failure		500 {object}	models.ErrorInternalServer "Internal server error"
+// @Router       /polls/{id}/download [get]
 func (h *PollHandler) DownloadReport(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
@@ -349,7 +440,7 @@ func (h *PollHandler) DownloadReport(c *gin.Context) {
 	idStr := c.Param("id")
 	pollID, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Nieprawidłowe ID ankiety"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nieprawidłowe ID ankiety"})
 		return
 	}
 
@@ -359,7 +450,7 @@ func (h *PollHandler) DownloadReport(c *gin.Context) {
 	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("Błąd połączenia z gRPC: %v", err)
-		c.JSON(500, gin.H{"error": "Serwis raportów jest nieosiągalny"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Serwis raportów jest nieosiągalny"})
 		return
 	}
 	defer conn.Close()
@@ -376,10 +467,10 @@ func (h *PollHandler) DownloadReport(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("Błąd podczas generowania raportu: %v", err)
-		c.JSON(500, gin.H{"error": "Nie udało się wygenerować raportu"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Nie udało się wygenerować raportu"})
 		return
 	}
 
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", resp.Filename))
-	c.Data(200, "text/plain; charset=utf-8", resp.Content)
+	c.Data(http.StatusOK, "text/plain; charset=utf-8", resp.Content)
 }

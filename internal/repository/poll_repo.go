@@ -28,7 +28,7 @@ func NewPollRepository(db *sql.DB) *PollRepository {
 }
 
 // inserts a new poll record and its options into the db
-func (r *PollRepository) Create(poll *models.ReponseForUser, userID int) error {
+func (r *PollRepository) Create(poll *models.ResponseForUser, userID int) error {
 
 	tx, err := r.DB.Begin()
 	if err != nil {
@@ -55,7 +55,7 @@ func (r *PollRepository) Create(poll *models.ReponseForUser, userID int) error {
 }
 
 // retrieves all polls from the database
-func (r *PollRepository) GetPoll(userID int) ([]models.ReponseForUser, error) {
+func (r *PollRepository) GetPoll(userID int) ([]models.ResponseForUser, error) {
 
 	queryPoll := `SELECT p.id, p.question, p.is_active, p.created_at,COALESCE(o.id, 0), COALESCE(o.text, ''),
 	COALESCE(o.votes_count, 0)
@@ -71,7 +71,7 @@ func (r *PollRepository) GetPoll(userID int) ([]models.ReponseForUser, error) {
 
 	defer rows.Close()
 
-	pollsMap := make(map[int]*models.ReponseForUser)
+	pollsMap := make(map[int]*models.ResponseForUser)
 
 	var pollsOrder []int
 
@@ -87,7 +87,7 @@ func (r *PollRepository) GetPoll(userID int) ([]models.ReponseForUser, error) {
 		}
 
 		if _, exists := pollsMap[pID]; !exists {
-			pollsMap[pID] = &models.ReponseForUser{
+			pollsMap[pID] = &models.ResponseForUser{
 				ID:        pID,
 				Question:  pQuestion,
 				IsActive:  pActive,
@@ -106,7 +106,7 @@ func (r *PollRepository) GetPoll(userID int) ([]models.ReponseForUser, error) {
 		}
 	}
 
-	result := make([]models.ReponseForUser, 0)
+	result := make([]models.ResponseForUser, 0)
 	for _, id := range pollsOrder {
 		result = append(result, *pollsMap[id])
 	}

@@ -18,7 +18,16 @@ type AuthHandler struct {
 }
 
 // register handler to create a new user account in DB
-
+// @Summary      User Register
+// @Tags         Authorization
+// @Accept       json
+// @Produce      json
+// @Param        credentials  body      models.RegisterRequest  true  "User Credentials"
+// @Success      201          {object}  map[string]string
+// @Failure		400 {object}	map[string]string "Status bad request"
+// @Failure		409 {object}	map[string]string "Status conflict"
+// @Failure		500 {object}	map[string]string "Internal server error"
+// @Router       /register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 
@@ -44,8 +53,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 // login handles user authentication and return JWT token
+// @Summary      User Login
+// @Tags         Authorization
+// @Accept       json
+// @Produce      json
+// @Param        credentials  body      models.LoginRequest  true  "User Credentials"
+// @Success      200          {object}  map[string]string
+// @Failure		400 {object}	models.ErrorBadRequest "Status unauthorized"
+// @Failure		401 {object}	models.ErrorUnauthorized "Status unauthorized"
+// @Failure		500 {object}	models.ErrorInternalServer "Internal server error"
+// @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var u models.User
+	var u models.LoginRequest
 
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

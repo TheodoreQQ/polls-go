@@ -2,11 +2,11 @@ package models
 
 import "time"
 
-type ReponseForUser struct {
+type ResponseForUser struct {
 	ID        int       `json:"id"`
 	Question  string    `json:"question"`
 	Options   []Option  `json:"options"`
-	IsActive  bool      `json:"is_active"`
+	IsActive  bool      `json:"is_active" swaggerignore:"true"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
