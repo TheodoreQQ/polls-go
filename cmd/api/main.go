@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/TheodoreQQ/polls-go/docs"
+
 	"github.com/TheodoreQQ/polls-go/internal/handlers"
 	"github.com/TheodoreQQ/polls-go/internal/middleware"
 	"github.com/TheodoreQQ/polls-go/internal/repository"
@@ -14,8 +16,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title           Polls Project API
+// @version         1.0
+// @description     To jest serwer ankiet.
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                Type 'Bearer ' followed by a space and then your token.
+// @description             Wpisz: Bearer <twoj_token_jwt>
+// @host      localhost:8080
+// @BasePath  /
 func main() {
 	// Conntecting to database
 	err := godotenv.Load("../../.env")
@@ -70,6 +85,9 @@ func main() {
 	r.GET("/join/:code", pollHandler.GetPollByCode)
 	r.POST("/vote", pollHandler.Vote)
 	r.GET("/ws/:id", pollHandler.WSHandler)
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.PersistAuthorization(true), ginSwagger.DocExpansion("list")))
+
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware())
 	protected.POST("/polls", pollHandler.CreatePoll)
