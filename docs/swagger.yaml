@@ -1,0 +1,519 @@
+definitions:
+  github_com_TheodoreQQ_polls-go_internal_models.CreateOptionRequest:
+    properties:
+      text:
+        example: Not to be
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.CreatePollRequest:
+    properties:
+      options:
+        items:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.CreateOptionRequest'
+        type: array
+      question:
+        example: Be or not to be?
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest:
+    properties:
+      error:
+        example: Invalid input
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.ErrorForbiddenVote:
+    properties:
+      error:
+        example: You have already voted
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer:
+    properties:
+      error:
+        example: Internal server error
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound:
+    properties:
+      error:
+        example: Poll not found
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized:
+    properties:
+      error:
+        example: Status unauthorized
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.LoginRequest:
+    properties:
+      password:
+        example: "123"
+        type: string
+      username:
+        example: TheodoreQQ
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.Option:
+    properties:
+      id:
+        type: integer
+      poll_id:
+        type: integer
+      text:
+        type: string
+      votes:
+        type: integer
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.Poll:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      options:
+        items:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Option'
+        type: array
+      question:
+        type: string
+    required:
+    - options
+    - question
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.RegisterRequest:
+    properties:
+      password:
+        example: "123"
+        minLength: 3
+        type: string
+      username:
+        example: TheodoreQQ
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.ResponseForUser:
+    properties:
+      options:
+        items:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Option'
+        type: array
+      question:
+        example: Be or not to be
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.UpdatePollRequest:
+    properties:
+      question:
+        example: Changed question
+        type: string
+    type: object
+  github_com_TheodoreQQ_polls-go_internal_models.VoteRequest:
+    properties:
+      option_id:
+        example: 35
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: To jest serwer ankiet.
+  title: Polls Project API
+  version: "1.0"
+paths:
+  /join/{code}:
+    get:
+      parameters:
+      - description: Poll Code
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+      summary: Get poll by share code
+      tags:
+      - Public
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User Credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Status unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User Login
+      tags:
+      - Authorization
+  /polls:
+    get:
+      description: Get all polls that belongs to user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll'
+            type: array
+        "401":
+          description: Status unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Polls for user
+      tags:
+      - Poll Management
+    post:
+      consumes:
+      - application/json
+      description: Create a poll with a question and multiple options
+      parameters:
+      - description: Poll Data
+        in: body
+        name: poll
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.CreatePollRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll'
+        "401":
+          description: Status unauthorized
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer'
+      security:
+      - BearerAuth: []
+      summary: Create a new poll
+      tags:
+      - Poll Management
+  /polls/{id}/activate:
+    patch:
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Status unauthorized
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+      security:
+      - BearerAuth: []
+      summary: Activate a poll
+      tags:
+      - Poll Management
+  /polls/{id}/deactivate:
+    patch:
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+      security:
+      - BearerAuth: []
+      summary: Deactivate a poll
+      tags:
+      - Poll Management
+  /polls/{id}/delete:
+    delete:
+      description: Remove a poll, its options, and all associated votes. Only the
+        author can delete the poll.
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Successfully deleted, no content
+        "400":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "401":
+          description: Status unauthorized
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+      security:
+      - BearerAuth: []
+      summary: Delete a poll
+      tags:
+      - Poll Management
+  /polls/{id}/download:
+    get:
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer'
+      security:
+      - BearerAuth: []
+      summary: Download poll report
+      tags:
+      - Poll Management
+  /polls/{id}/question:
+    patch:
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New Question
+        in: body
+        name: question
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.UpdatePollRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll'
+        "400":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer'
+      security:
+      - BearerAuth: []
+      summary: Update poll question
+      tags:
+      - Poll Management
+  /polls/{id}/results:
+    get:
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ResponseForUser'
+            type: array
+        "400":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "401":
+          description: Status unauthorized
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+      security:
+      - BearerAuth: []
+      summary: Get poll statistics
+      tags:
+      - Poll Management
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User Credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Status bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Status conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User Register
+      tags:
+      - Authorization
+  /vote:
+    post:
+      parameters:
+      - description: Poll Code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Option ID
+        in: body
+        name: vote
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.VoteRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "403":
+          description: Status forbidden
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorForbiddenVote'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
+      summary: Vote in a poll
+      tags:
+      - Public
+securityDefinitions:
+  BearerAuth:
+    description: |-
+      Type 'Bearer ' followed by a space and then your token.
+      Wpisz: Bearer <twoj_token_jwt>
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

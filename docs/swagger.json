@@ -1,0 +1,799 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "To jest serwer ankiet.",
+        "title": "Polls Project API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/join/{code}": {
+            "get": {
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get poll by share code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Poll Code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "User Login",
+                "parameters": [
+                    {
+                        "description": "User Credentials",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/polls": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all polls that belongs to user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Get Polls for user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a poll with a question and multiple options",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Create a new poll",
+                "parameters": [
+                    {
+                        "description": "Poll Data",
+                        "name": "poll",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.CreatePollRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll"
+                        }
+                    },
+                    "401": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer"
+                        }
+                    }
+                }
+            }
+        },
+        "/polls/{id}/activate": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Activate a poll",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    }
+                }
+            }
+        },
+        "/polls/{id}/deactivate": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Deactivate a poll",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    }
+                }
+            }
+        },
+        "/polls/{id}/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a poll, its options, and all associated votes. Only the author can delete the poll.",
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Delete a poll",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successfully deleted, no content"
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    }
+                }
+            }
+        },
+        "/polls/{id}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Download poll report",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer"
+                        }
+                    }
+                }
+            }
+        },
+        "/polls/{id}/question": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Update poll question",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New Question",
+                        "name": "question",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.UpdatePollRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll"
+                        }
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer"
+                        }
+                    }
+                }
+            }
+        },
+        "/polls/{id}/results": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Poll Management"
+                ],
+                "summary": "Get poll statistics",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ResponseForUser"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "User Register",
+                "parameters": [
+                    {
+                        "description": "User Credentials",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Status conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vote": {
+            "post": {
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Vote in a poll",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Poll Code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Option ID",
+                        "name": "vote",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.VoteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "403": {
+                        "description": "Status forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorForbiddenVote"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_TheodoreQQ_polls-go_internal_models.CreateOptionRequest": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "example": "Not to be"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.CreatePollRequest": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.CreateOptionRequest"
+                    }
+                },
+                "question": {
+                    "type": "string",
+                    "example": "Be or not to be?"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid input"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.ErrorForbiddenVote": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "You have already voted"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Internal server error"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Poll not found"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Status unauthorized"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "123"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "TheodoreQQ"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.Option": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "poll_id": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.Poll": {
+            "type": "object",
+            "required": [
+                "options",
+                "question"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Option"
+                    }
+                },
+                "question": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 3,
+                    "example": "123"
+                },
+                "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "example": "TheodoreQQ"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.ResponseForUser": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Option"
+                    }
+                },
+                "question": {
+                    "type": "string",
+                    "example": "Be or not to be"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.UpdatePollRequest": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "example": "Changed question"
+                }
+            }
+        },
+        "github_com_TheodoreQQ_polls-go_internal_models.VoteRequest": {
+            "type": "object",
+            "properties": {
+                "option_id": {
+                    "type": "integer",
+                    "example": 35
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type 'Bearer ' followed by a space and then your token.\nWpisz: Bearer \u003ctwoj_token_jwt\u003e",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
