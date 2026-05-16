@@ -33,7 +33,7 @@ import (
 // @BasePath  /
 func main() {
 	// Conntecting to database
-	_ = godotenv.Load())
+	_ = godotenv.Load()
 	// if err != nil {
 	// 	log.Fatal("Failed to load .env file")
 	// }
