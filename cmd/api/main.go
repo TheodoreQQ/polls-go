@@ -33,10 +33,10 @@ import (
 // @BasePath  /
 func main() {
 	// Conntecting to database
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Failed to load .env file")
-	}
+	_ = godotenv.Load())
+	// if err != nil {
+	// 	log.Fatal("Failed to load .env file")
+	// }
 	connStr := os.Getenv("DB_URL")
 	if connStr == "" {
 		log.Fatal("URL is empty")
