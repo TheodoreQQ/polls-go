@@ -12,7 +12,7 @@ FROM alpine:latest
 WORKDIR /
 COPY --from=builder /polls-api /polls-api 
 
-COPY init.sql /init.sql
+COPY scripts/init.sql /init.sql
 
 EXPOSE 8080 
 CMD ["/polls-api"]
