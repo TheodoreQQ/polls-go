@@ -46,6 +46,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database", err)
 	}
+
 	defer db.Close()
 
 	// Repo initialization
@@ -100,5 +101,9 @@ func main() {
 	protected.GET("polls/:id/download", pollHandler.DownloadReport)
 
 	// Start serwera
-	r.Run(":8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	r.Run(":" + port)
 }
