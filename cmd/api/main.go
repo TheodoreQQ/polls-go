@@ -1,8 +1,6 @@
 package main
 
 import (
-	"database/sql"
-	"log"
 	"os"
 	"time"
 
@@ -37,16 +35,8 @@ func main() {
 	// if err != nil {
 	// 	log.Fatal("Failed to load .env file")
 	// }
-	connStr := os.Getenv("DB_URL")
-	if connStr == "" {
-		log.Fatal("URL is empty")
-	}
 
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal("Failed to connect to database", err)
-	}
-
+	db := handlers.ConnectDB()
 	defer db.Close()
 
 	// Repo initialization
