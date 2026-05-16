@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -191,9 +192,16 @@ func (h *PollHandler) Vote(c *gin.Context) {
 		return
 	}
 
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	if cookieDomain == "" {
+		cookieDomain = "localhost"
+	}
+
+	isProd := os.Getenv("PORT") != ""
+
 	cookieName := fmt.Sprintf("voted_poll_%d", pollID)
-	if _, err := c.Cookie(cookieName); err == nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You have already voted!"})
+	if _, err := c.Cookie(cookieName); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You have already voted"})
 		return
 	}
 
@@ -213,14 +221,18 @@ func (h *PollHandler) Vote(c *gin.Context) {
 		fmt.Printf("Broadcast Error: %v\n", err)
 	}
 
+	if isProd {
+		c.SetSameSite(http.SameSiteNoneMode)
+	}
+
 	cookieName = fmt.Sprintf("voted_poll_%d", actualPollID)
 	c.SetCookie(
 		cookieName,
 		"true",
 		86400,
 		"/",
-		"localhost",
-		false,
+		cookieDomain,
+		isProd,
 		true,
 	)
 
