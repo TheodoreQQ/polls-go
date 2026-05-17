@@ -193,8 +193,8 @@ func (h *PollHandler) Vote(c *gin.Context) {
 	}
 
 	cookieDomain := os.Getenv("COOKIE_DOMAIN")
-	if cookieDomain == "" {
-		cookieDomain = "localhost"
+	if os.Getenv("APP_ENV") != "production" {
+		cookieDomain = ""
 	}
 
 	isProd := os.Getenv("PORT") != ""
