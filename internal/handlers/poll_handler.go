@@ -200,7 +200,7 @@ func (h *PollHandler) Vote(c *gin.Context) {
 	isProd := os.Getenv("PORT") != ""
 
 	cookieName := fmt.Sprintf("voted_poll_%d", pollID)
-	if _, err := c.Cookie(cookieName); err != nil {
+	if _, err := c.Cookie(cookieName); err == nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You have already voted"})
 		return
 	}
