@@ -79,22 +79,22 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "400": {
+                        "description": "Status unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
                     "401": {
                         "description": "Status unauthorized",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer"
                         }
                     }
                 }
@@ -180,16 +180,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll"
                         }
                     },
+                    "400": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
                     "401": {
                         "description": "Status unauthorized",
                         "schema": {
                             "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
-                        }
-                    },
-                    "404": {
-                        "description": "Status not found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound"
                         }
                     },
                     "500": {
@@ -371,6 +371,12 @@ const docTemplate = `{
                         "description": "Status bad request",
                         "schema": {
                             "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Status bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized"
                         }
                     },
                     "500": {
@@ -765,6 +771,12 @@ const docTemplate = `{
         "github_com_TheodoreQQ_polls-go_internal_models.ResponseForUser": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
                 "options": {
                     "type": "array",
                     "items": {
@@ -772,8 +784,7 @@ const docTemplate = `{
                     }
                 },
                 "question": {
-                    "type": "string",
-                    "example": "Be or not to be"
+                    "type": "string"
                 }
             }
         },
@@ -798,7 +809,6 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type 'Bearer ' followed by a space and then your token.\nWpisz: Bearer \u003ctwoj_token_jwt\u003e",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"

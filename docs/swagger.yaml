@@ -104,12 +104,15 @@ definitions:
     type: object
   github_com_TheodoreQQ_polls-go_internal_models.ResponseForUser:
     properties:
+      created_at:
+        type: string
+      id:
+        type: integer
       options:
         items:
           $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Option'
         type: array
       question:
-        example: Be or not to be
         type: string
     type: object
   github_com_TheodoreQQ_polls-go_internal_models.UpdatePollRequest:
@@ -170,18 +173,18 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "400":
+          description: Status unauthorized
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
         "401":
           description: Status unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
         "500":
           description: Internal server error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorInternalServer'
       summary: User Login
       tags:
       - Authorization
@@ -232,14 +235,14 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.Poll'
+        "400":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
         "401":
           description: Status unauthorized
           schema:
             $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
-        "404":
-          description: Status not found
-          schema:
-            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorNotFound'
         "500":
           description: Internal server error
           schema:
@@ -354,6 +357,10 @@ paths:
           description: Status bad request
           schema:
             $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorBadRequest'
+        "401":
+          description: Status bad request
+          schema:
+            $ref: '#/definitions/github_com_TheodoreQQ_polls-go_internal_models.ErrorUnauthorized'
         "500":
           description: Internal server error
           schema:
@@ -510,9 +517,6 @@ paths:
       - Public
 securityDefinitions:
   BearerAuth:
-    description: |-
-      Type 'Bearer ' followed by a space and then your token.
-      Wpisz: Bearer <twoj_token_jwt>
     in: header
     name: Authorization
     type: apiKey
