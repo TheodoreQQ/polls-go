@@ -91,7 +91,7 @@ func main() {
 	// Turning on gRCP
 	port := os.Getenv("REPORTER_PORT")
 	if port == "" {
-		log.Fatal("Port is empty")
+		port = "50051"
 	}
 
 	addr := ":" + port
