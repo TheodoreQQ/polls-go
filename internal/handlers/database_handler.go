@@ -5,10 +5,15 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 func ConnectDB() *sql.DB {
+
+	_ = godotenv.Load("../../.env")
+
+	_ = os.Getenv("DB_URL")
 
 	connStr := os.Getenv("DB_URL")
 	if connStr == "" {
