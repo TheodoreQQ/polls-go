@@ -25,9 +25,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in                         header
 // @name                       Authorization
-// @description                Type 'Bearer ' followed by a space and then your token.
-// @description             Wpisz: Bearer <twoj_token_jwt>
-// @host      localhost:8080
+// @host      polls-backed-api.onrender.com/
 // @BasePath  /
 func main() {
 	// Conntecting to database
