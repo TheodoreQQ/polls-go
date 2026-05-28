@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"time"
 
@@ -69,6 +70,9 @@ func main() {
 
 	// Endpoints definitions
 	r.Use(middleware.UsageLogger(db))
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+	})
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.GET("/join/:code", pollHandler.GetPollByCode)
