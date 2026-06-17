@@ -115,7 +115,7 @@ func (h *PollHandler) GetPoll(c *gin.Context) {
 }
 
 // changes is_active poll status = true
-// ActivatePoll aktywuje ankietę, aby można było na nią głosować
+// ActivatePoll activates poll and makes it voteable
 // @Summary      Activate a poll
 // @Tags         Poll Management
 // @Security     BearerAuth
@@ -308,7 +308,7 @@ func (h *PollHandler) DeletePoll(c *gin.Context) {
 }
 
 // user can change is_active status = false
-// DeactivatePoll dezaktywuje ankietę
+// DeactivatePoll deactivates the poll
 // @Summary      Deactivate a poll
 // @Tags         Poll Management
 // @Security     BearerAuth

@@ -29,7 +29,7 @@ import (
 // @host      polls-backed-api.onrender.com/
 // @BasePath  /
 func main() {
-	// Conntecting to database
+	// Conntecting to database, it does nothing when deploying on render
 	_ = godotenv.Load()
 	// if err != nil {
 	// 	log.Fatal("Failed to load .env file")
@@ -92,7 +92,7 @@ func main() {
 	protected.PATCH("/polls/:id/question", pollHandler.UpdateQuestion)
 	protected.GET("polls/:id/download", pollHandler.DownloadReport)
 
-	// Start serwera
+	// server start
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

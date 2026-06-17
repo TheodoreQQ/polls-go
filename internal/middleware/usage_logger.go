@@ -13,6 +13,7 @@ func UsageLogger(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
+		// request goes to its handler
 		c.Next()
 
 		latency := time.Since(start).Milliseconds()

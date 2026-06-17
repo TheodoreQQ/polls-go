@@ -27,7 +27,7 @@ type server struct {
 }
 
 func (s *server) GenerateReport(ctx context.Context, req *pb.ExportRequest) (*pb.ExportResponse, error) {
-	log.Printf("Generowanie raportu CSV dla ankiety: %d", req.PollId)
+	log.Printf("Generating raport for poll with ID: %d", req.PollId)
 
 	md, _ := metadata.FromIncomingContext(ctx)
 	currentUserID := md.Get("x-user-id")[0]
