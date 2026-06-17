@@ -10,7 +10,7 @@
     id SERIAL PRIMARY KEY,
     owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     question TEXT NOT NULL,
-    code VARCHAR(4) DEFAULT NULL UNIQUE,
+    code VARCHAR(4) UNIQUE,
     is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  
   );
